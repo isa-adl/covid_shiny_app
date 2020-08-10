@@ -1,0 +1,326 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+# Load packages
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(plotly)
+
+```
+
+```{r}
+# Read datasets/confirmed_cases_worldwide.csv into confirmed_cases_worldwide
+coronavirus <- read_csv("coronavirus.csv")
+
+head(coronavirus)
+str(coronavirus)
+
+# # See the result
+bycountry <- coronavirus %>% 
+  filter(type == "confirmed") %>%
+  group_by(country) %>%
+  summarise(total_cases = sum(cases)) %>%
+  arrange(-total_cases)
+
+bycountry
+
+
+confirmed_cases = coronavirus %>% 
+  group_by(date) %>%
+  filter(type == "confirmed") %>%
+  summarize(cases = sum(cases)) %>%
+  mutate(cumsum = cumsum(cases))
+
+# confirmed_cases_china = coronavirus %>%
+#   group_by(date) %>%
+#   filter(country == "China", type == "confirmed")%>% 
+#   summarize(cases = sum(cases)) %>%
+#   mutate(cumsum = cumsum(cases))
+# confirmed_cases_china
+
+
+
+(confirmed_cases)
+
+
+
+
+
+```
+
+
+```{r}
+coronavirus %>% 
+  filter(date == max(date)) %>%
+  select(country, type, cases) %>%
+  group_by(country, type) %>%
+  summarise(total_cases = sum(cases)) %>%
+  pivot_wider(names_from = type,
+              values_from = total_cases) %>%
+  arrange(-confirmed)
+```
+
+
+```{r}
+coronavirus %>% 
+  group_by(type, date) %>%
+  summarise(total_cases = sum(cases)) %>%
+  pivot_wider(names_from = type, values_from = total_cases) %>%
+  arrange(date) %>%
+  mutate(active = confirmed - death - recovered) %>%
+  mutate(active_total = cumsum(active),
+                recovered_total = cumsum(recovered),
+                death_total = cumsum(death)) %>%
+  plot_ly(x = ~ date,
+                  y = ~ active_total,
+                  name = 'Active', 
+                  fillcolor = '#1f77b4',
+                  type = 'scatter',
+                  mode = 'none', 
+                  stackgroup = 'one') %>%
+  add_trace(y = ~ death_total, 
+             name = "Death",
+             fillcolor = '#E41317') %>%
+  add_trace(y = ~recovered_total, 
+            name = 'Recovered', 
+            fillcolor = 'forestgreen') %>%
+  layout(title = "Distribution of Covid19 Cases Worldwide",
+         legend = list(x = 0.1, y = 0.9),
+         yaxis = list(title = "Number of Cases"),
+         xaxis = list(title = "Source: Johns Hopkins University Center for Systems Science and Engineering"))
+```
+
+```{r}
+conf_df <- coronavirus %>% 
+  filter(type == "confirmed") %>%
+  group_by(country) %>%
+  summarise(total_cases = sum(cases)) %>%
+  arrange(-total_cases) %>%
+  mutate(parents = "Confirmed") %>%
+  ungroup() 
+  
+  plot_ly(data = conf_df,
+          type= "treemap",
+          values = ~total_cases,
+          labels= ~ country,
+          parents=  ~parents,
+          domain = list(column=0),
+          name = "Confirmed",
+          textinfo="label+value+percent parent")
+```
+
+```{r}
+ggplot(confirmed_cases, aes(x = date, y = cum_cases)) +
+  geom_line(aes(x = date, y = cum_cases)) +
+  ylab("Cumulative confirmed cases")
+```
+
+```{r}
+head(coronavirus)
+```
+```{r}
+coronavirus = tibble::rowid_to_column(coronavirus, "ID")
+head(coronavirus)
+```
+
+```{r}
+# coronavirus = coronavirus %>%
+#   group_by(ID) %>% 
+#   mutate(cum_cases = cumsum(cases))
+# coronavirus %>% head(70)
+
+```
+
+
+```{r}
+mutate(group_by(coronavirus, ID), cumsum = cumsum(cases))
+```
+
+
+```{r}
+# df <- data.frame(id = rep(1:3, each = 5),
+#                  hour = rep(1:5, 3),
+#                  value = sample(1:15))
+# 
+# mutate(group_by(df,id), cumsum=cumsum(value))
+```
+
+```{r}
+confirmed_cases_china = coronavirus %>%
+  group_by(date) %>%
+  filter(country == "China", type == "confirmed")%>% 
+  summarize(cases = sum(cases)) %>%
+  mutate(cumsum = cumsum(cases))
+confirmed_cases_china
+
+confirmed_cases_china %>% 
+  group_by(date) %>% 
+  summarize(cases = sum(cases)) %>% 
+  select(date, country, cases, cumsum)
+  
+
+glimpse(confirmed_cases_china)
+```
+
+```{r}
+plt_cum_confirmed_cases_china <- ggplot(confirmed_cases_china, aes(date, cumsum)) +
+  geom_line() +
+  ylab("Cumulative confirmed cases") 
+
+# See the plot
+plt_cum_confirmed_cases_china
+```
+
+```{r}
+who_events <- tribble(
+  ~ date, ~ event,
+  "2020-01-30", "Global health emergency declared",
+  "2020-03-11", "Pandemic declared",
+  "2020-02-13", "China reporting change"
+) %>%
+  mutate(date = as.Date(date))
+
+# Using who_events, add vertical dashed lines with an xintercept at date
+# and text at date, labeled by event, and at 100000 on the y-axis
+plt_cum_confirmed_cases_china + 
+  geom_vline(aes(xintercept = date), data = who_events, linetype = "dashed") +
+  geom_text(aes(x = date, label = event), data = who_events, y = 1e5)
+
+```
+
+```{r}
+# Filter for China, from Feb 15
+china_after_feb15 <- confirmed_cases_china %>%
+  filter(date >= "2020-02-15")
+
+# Using china_after_feb15, draw a line plot cum_cases vs. date
+# Add a smooth trend line using linear regression, no error bars
+ggplot(china_after_feb15, aes(date, cumsum)) +
+  geom_line() +
+  geom_smooth(method = "lm", formula = 'y ~ x', se = FALSE) +
+  ylab("Cumulative confirmed cases")
+```
+
+```{r}
+not_china = coronavirus %>%
+  group_by(date) %>%
+  filter(country != "China", type == "confirmed")%>% 
+  summarize(cases = sum(cases)) %>%
+  mutate(cumsum = cumsum(cases))
+not_china
+
+# not_china %>% 
+#   group_by(date) %>% 
+#   summarize(cases = sum(cases)) %>% 
+#   select(date, country, cases, cumsum)
+
+
+glimpse(not_china)
+```
+
+```{r}
+not_china2 = coronavirus %>%
+  group_by(date) %>%
+  filter(country != "China", type == "confirmed")%>% 
+  summarize(cases = sum(cases)) %>%
+  mutate(cumsum = cumsum(cases))
+not_china2
+```
+
+```{r}
+
+world_after_feb15 <- all_countries %>%
+  filter(date >= "2020-02-15")
+
+
+all_countries_trend_lin <- ggplot(world_after_feb15, aes(x = date, y =cumsum)) +
+  geom_line() +
+  geom_smooth(method = "lm", formula = 'y ~ x', se = FALSE) +
+  ylab("Cumulative confirmed cases")
+
+
+# See the result
+all_countries_trend_lin 
+
+```
+
+
+
+```{r}
+# Using not_china, draw a line plot cum_cases vs. date
+# Add a smooth trend line using linear regression, no error bars
+plt_not_china_trend_lin <- ggplot(not_china, aes(date, cumsum)) +
+  geom_line() +
+  geom_smooth(method = "lm", formula = 'y ~ x', se = FALSE) +
+  ylab("Cumulative confirmed cases")
+
+# See the result
+plt_not_china_trend_lin 
+```
+
+```{r}
+plt_not_china_trend_lin + 
+  scale_y_log10()
+```
+
+```{r}
+# Group by country, summarize to calculate total cases, find the top 7
+bycountry <- coronavirus %>% 
+  filter(type == "confirmed") %>%
+  group_by(country, date) %>%
+  summarise(total_cases = sum(cases)) %>%
+  arrange(-total_cases)
+
+
+bycountry
+
+
+
+top_countries_by_total_cases = bycountry %>% 
+  group_by(country) %>%
+  top_n(7, total_cases)
+
+
+
+
+top_countries_by_total_cases <- bycountry %>%
+  group_by(country) %>%
+  summarize(total_cases = sum(total_cases)) %>%
+  top_n(7, total_cases)
+
+
+
+# See the result
+top_countries_by_total_cases
+
+```
+
+Filter by top 7 countries
+```{r}
+target = c("Brazil", "India", "Mexico", "Peru", "Russia", "South Africa", "US")
+top_7countries = bycountry %>% 
+  filter(country %in% target)
+
+top_7countries
+
+```
+
+
+```{r}
+ggplot(top_7countries, aes(date, total_cases))  +
+    geom_line(aes(group = country, color = country))+
+    ylab("Cumulative confirmed cases")
+```
+
+
+
+
+
+
+
