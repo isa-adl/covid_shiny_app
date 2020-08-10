@@ -16,7 +16,7 @@ library(plotly)
 
 ```{r}
 # Read datasets/confirmed_cases_worldwide.csv into confirmed_cases_worldwide
-coronavirus <- read_csv("coronavirus.csv")
+coronavirus <- read_csv("./data/coronavirus.csv")
 
 head(coronavirus)
 str(coronavirus)
