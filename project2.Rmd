@@ -282,7 +282,7 @@ bycountry
 
 
 
-top_countries_by_total_cases = bycountry %>% 
+top_countries_by_total_cases_date = bycountry %>% 
   group_by(country) %>%
   top_n(7, total_cases)
 
