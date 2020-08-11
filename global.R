@@ -85,3 +85,4 @@ owid_bycountry = owid_covid %>%
   summarize(total_cases = sum(total_cases)) 
 
 
+owid_bycountry

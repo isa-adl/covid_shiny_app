@@ -393,5 +393,46 @@ income_hist = clean %>% filter(top_7countries, country =='US') %>%
 ```
 
 
+```{r}
+ui <- fluidPage(
+  # CODE BELOW: Add a titlePanel with an appropriate title
+  titlePanel("COVID-19"),
+  # REPLACE CODE BELOW: with theme = shinythemes::shinytheme("<your theme>")
+  theme = shinythemes::shinytheme("superhero"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput('country', 'Select Country', top_7countries$country)
+    ),
+    mainPanel(
+      tabsetPanel(
+        tabPanel('Plot', plotly::plotlyOutput('plot_top_7countries')),
+        tabPanel('Table', DT::DTOutput('table_top_7countries'))
+      )
+    )
+  )
+)
+server <- function(input, output, session){
+  # Function to plot trends in a name
+  plot_trends <- function(){
+     top_7countries %>% 
+      filter(country == input$country, date >= "2020-02-15") %>% 
+      ggplot(aes(x= country, y = total_cases)) +
+      geom_bar()
+  }
+  output$plot_top_7countries <- plotly::renderPlotly({
+    plot_trends()
+  })
+  
+  output$table_top_7countries <- DT::renderDT({
+    top_7countries %>% 
+      filter(country == input$country)
+  })
+}
+shinyApp(ui = ui, server = server)
+
+```
+```
+
 
 
