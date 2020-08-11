@@ -152,6 +152,39 @@ mutate(group_by(coronavirus, ID), cumsum = cumsum(cases))
 ```
 
 ```{r}
+confirmed_cases_usa = coronavirus %>%
+  group_by(date) %>%
+  filter(country == "US", type == "confirmed")%>% 
+  summarize(cases = sum(cases)) %>%
+  mutate(cumsum = cumsum(cases))
+confirmed_cases_usa
+
+```
+
+
+```{r}
+plt_cum_confirmed_cases_usa <- ggplot(confirmed_cases_usa, aes(date, cumsum)) +
+  geom_line() +
+  ylab("Cumulative confirmed cases") 
+
+# See the plot
+plt_cum_confirmed_cases_usa
+```
+
+```{r}
+# Filter for USA, from Feb 15
+usa_after_march1 <- confirmed_cases_usa %>%
+  filter(date >= "2020-03-1")
+
+# Using china_after_feb15, draw a line plot cum_cases vs. date
+# Add a smooth trend line using linear regression, no error bars
+ggplot(usa_after_march1, aes(date, cumsum)) +
+  geom_line() +
+  geom_smooth(method = "lm", formula = 'y ~ x', se = FALSE) +
+  ylab("Cumulative confirmed cases")
+```
+
+```{r}
 confirmed_cases_china = coronavirus %>%
   group_by(date) %>%
   filter(country == "China", type == "confirmed")%>% 
@@ -222,6 +255,27 @@ not_china
 
 
 glimpse(not_china)
+```
+
+```{r}
+not_usa = coronavirus %>%
+  group_by(date) %>%
+  filter(country != "US", type == "confirmed")%>% 
+  summarize(cases = sum(cases)) %>%
+  mutate(cumsum = cumsum(cases))
+not_usa
+```
+
+```{r}
+# Using not_usa, draw a line plot cum_cases vs. date
+# Add a smooth trend line using linear regression, no error bars
+plt_not_usa_trend_lin <- ggplot(not_usa, aes(date, cumsum)) +
+  geom_line() +
+  geom_smooth(method = "lm", formula = 'y ~ x', se = FALSE) +
+  ylab("Cumulative confirmed cases")
+
+# See the result
+plt_not_usa_trend_lin 
 ```
 
 ```{r}
@@ -313,13 +367,30 @@ top_7countries
 
 
 ```{r}
-ggplot(top_7countries, aes(date, total_cases))  +
+plt_top_7countries = ggplot(top_7countries, aes(date, total_cases))  +
     geom_line(aes(group = country, color = country))+
     ylab("Cumulative confirmed cases")
+
+plt_top_7countries
+```
+
+```{r}
+plt_top_7countries + 
+  scale_y_log10()
+```
+
+```{r}
+ggplot(top_7countries, aes(x= country, y = total_cases))  +
+    geom_boxplot(aes(color = country))
 ```
 
 
-
+```{r}
+income_hist = clean %>% filter(top_7countries, country =='US') %>% 
+  ggplot(., aes(x=total_cases)) +
+  geom_histogram(bins=8) +
+  theme_bw()
+```
 
 
 

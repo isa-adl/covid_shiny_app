@@ -22,6 +22,7 @@ data <- coronavirus %>%
   select(date, country, type, cases)
 
 
+
 # By Country DF
 bycountry <- coronavirus %>%
   filter(type == "confirmed") %>%
@@ -54,7 +55,6 @@ bycountry_date <- coronavirus %>%
   summarise(total_cases = sum(cases)) %>%
   arrange(-total_cases)
 
-
 bycountry <- coronavirus %>% 
   filter(type == "confirmed") %>%
   group_by(country) %>%
@@ -67,7 +67,7 @@ top_countries_cases_bydate = bycountry_date %>%
   group_by(country) %>%
   top_n(7, total_cases)
 
-top_countries_by_total_cases <- bycountry-date %>%
+top_countries_by_total_cases <- bycountry_date %>%
   group_by(country) %>%
   summarize(total_cases = sum(total_cases)) %>%
   top_n(7, total_cases)
@@ -75,5 +75,13 @@ top_countries_by_total_cases <- bycountry-date %>%
 target = c("Brazil", "India", "Mexico", "Peru", "Russia", "South Africa", "US")
 top_7countries = bycountry_date %>% 
   filter(country %in% target)
+
+
+# Read datasets
+owid_covid <- read_csv("./data/owid-covid-data.csv")
+
+owid_bycountry = owid_covid %>% 
+  group_by(location) %>%
+  summarize(total_cases = sum(total_cases)) 
 
 

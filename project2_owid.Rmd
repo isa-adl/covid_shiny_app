@@ -1,0 +1,69 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Project 2 
+source: https://ourworldindata.org/covid-cases
+
+```{r}
+# Load packages
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(plotly)
+```
+
+
+```{r}
+# Read datasets
+owid_covid <- read_csv("./data/owid-covid-data.csv")
+
+head(owid_covid)
+str(owid_covid)
+```
+
+```{r}
+covid_usa = owid_covid %>%
+  filter(location == "United States")
+confirmed_cases_usa %>% tail(100)
+```
+
+```{r}
+# Filter for USA, from Feb 15
+usa_after_march1 <- covid_usa %>%
+  filter(date >= "2020-03-1")
+
+# Using china_after_feb15, draw a line plot cum_cases vs. date
+# Add a smooth trend line using linear regression, no error bars
+ggplot(usa_after_march1, aes(date, total_cases)) +
+  geom_line() +
+  geom_smooth(method = "lm", formula = 'y ~ x', se = FALSE) +
+  ylab("Cumulative confirmed cases")
+```
+
+```{r}
+top_countries_by_cases = owid_covid %>% 
+  group_by(location) %>%
+  summarize(total_cases = sum(total_cases)) %>%
+  top_n(10, total_cases)
+
+top_countries_by_cases
+```
+
+```{r}
+plt_top_countries_by_cases = ggplot(top_countries_by_cases, aes(date, total_cases))  +
+    geom_line(aes(group = location, color = location))+
+    ylab("Cumulative confirmed cases")
+
+plt_top_countries_by_cases
+```
+```{r}
+owid_bycountry = owid_covid %>% 
+  group_by(location) %>%
+  summarize(total_cases = sum(total_cases)) 
+
+owid_bycountry
+```
+
