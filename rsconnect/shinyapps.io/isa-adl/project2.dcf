@@ -5,6 +5,8 @@ account: isa-adl
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2655740
-bundleId: 3495384
+bundleId: 3525322
 url: https://isa-adl.shinyapps.io/project2/
-when: 1597032563.96575
+when: 1597671119.01371
+asMultiple: FALSE
+asStatic: FALSE

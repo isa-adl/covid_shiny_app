@@ -681,11 +681,18 @@ if (require(maps)) {
 ```{r}
 plt_top_7countries = ggplot(top_7countries_3, aes(date, total_cases))  +
     geom_line(aes(group = location, color = location))+
-    ylab("Cumulative confirmed cases")
+    ylab("Total Cases")
 
 plt_top_7countries
 ```
 
+```{r}
+plt_top_7countries_pm = ggplot(top_7countries_3, aes(date, total_cases_per_million))  +
+    geom_line(aes(group = location, color = location))+
+    ylab("Total Cases per Million")
+
+plt_top_7countries_pm
+```
 
 
 

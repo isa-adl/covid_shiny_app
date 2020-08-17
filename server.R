@@ -32,8 +32,15 @@ server  <- function(input, output) {
     output$plt_top_7countries = renderPlot({ 
         ggplot(top_7countries_3, aes(date, total_cases))  +
             geom_line(aes(group = location, color = location))+
-            ylab("Cumulative confirmed cases")+
-            ggtitle("Total Cases for Countries with the Most Cases")
+            ylab("Total Cases")+
+            ggtitle("Total Cases in Countries with the Most Cases")
+    })
+    
+    output$plt_top_7countries_pm = renderPlot({ 
+        ggplot(top_7countries_3, aes(date, total_cases_per_million))  +
+            geom_line(aes(group = location, color = location))+
+            ylab("Total Cases per Million") +
+            ggtitle("Total Cases per Million in Countries with the Most Cases")
     })
     
     

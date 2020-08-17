@@ -97,7 +97,14 @@ fluidPage(
                                         br(),
                                         br(),
                                         br(),
-                                        plotOutput("plt_top_7countries")
+                                        plotOutput("plt_top_7countries"),
+                                        br(),
+                                        br(),
+                                        plotOutput("plt_top_7countries_pm"),
+                                        br(),
+                                        br(),
+                                        br(),
+                                        br()
                                     )
                                 )
                                 #   column(2,
