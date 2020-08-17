@@ -325,7 +325,10 @@ plt_not_china_trend_lin +
 
 ```{r}
 # Group by country, summarize to calculate total cases, find the top 7
+coronavirus <- read_csv("./data/coronavirus.csv")
+
 bycountry <- coronavirus %>% 
+  mutate(date = as.Date(date))%>%
   filter(type == "confirmed") %>%
   group_by(country, date) %>%
   summarise(total_cases = sum(cases)) %>%
@@ -359,7 +362,8 @@ Filter by top 7 countries
 ```{r}
 target = c("Brazil", "India", "Mexico", "Peru", "Russia", "South Africa", "US")
 top_7countries = bycountry %>% 
-  filter(country %in% target)
+  filter(country %in% target) %>% 
+  filter(total_cases > 0)
 
 top_7countries
 
@@ -398,11 +402,14 @@ ui <- fluidPage(
   # CODE BELOW: Add a titlePanel with an appropriate title
   titlePanel("COVID-19"),
   # REPLACE CODE BELOW: with theme = shinythemes::shinytheme("<your theme>")
-  theme = shinythemes::shinytheme("superhero"),
-  
+  theme = shinythemes::shinytheme("cerulean"),
+  # shinythemes::themeSelector(),
   sidebarLayout(
     sidebarPanel(
-      selectInput('country', 'Select Country', top_7countries$country)
+      selectInput('country', 'Select Country', top_7countries$country, multiple = TRUE),
+      dateRangeInput("date", "Select a Date Range", 
+                     start = "2020-02-15",
+                     end = "2020-08-15")
     ),
     mainPanel(
       tabsetPanel(
@@ -415,12 +422,15 @@ ui <- fluidPage(
 server <- function(input, output, session){
   # Function to plot trends in a name
   plot_trends <- function(){
-     top_7countries %>% 
+     top_7countries %>%  
       filter(country == input$country, date >= "2020-02-15") %>% 
-      ggplot(aes(x= country, y = total_cases)) +
-      geom_bar()
+      ggplot(aes(x = date, y = total_cases)) +
+      geom_line()
   }
   output$plot_top_7countries <- plotly::renderPlotly({
+    validate(
+    need(input$country != "", "Select a country and date range to get the app working")
+    )
     plot_trends()
   })
   
@@ -432,7 +442,284 @@ server <- function(input, output, session){
 shinyApp(ui = ui, server = server)
 
 ```
+
+
+```{r}
+# Group by country, summarize to calculate total cases, find the top 7
+coronavirus <- read_csv("./data/coronavirus.csv")
+
+bycountry <- coronavirus %>% 
+  mutate(date = as.Date(date))%>%
+  filter(type == "confirmed") %>%
+  group_by(country, date) %>%
+  summarise(total_cases = sum(cases)) %>%
+  arrange(-total_cases)
+
+target = c("Brazil", "India", "Mexico", "Peru", "Russia", "South Africa", "US")
+top_7countries = bycountry %>% 
+  filter(country %in% target) %>% 
+  filter(total_cases > 0)
+
+top_7countries
+
+ui <- fluidPage(
+  # CODE BELOW: Add a titlePanel with an appropriate title
+  titlePanel("COVID-19"),
+  # REPLACE CODE BELOW: with theme = shinythemes::shinytheme("<your theme>")
+  theme = shinythemes::shinytheme("superhero"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput('country', 'Select Country', top_7countries$country, multiple = TRUE),
+      dateRangeInput("date", "Select a Date Range", 
+                     start = "2020-02-15",
+                     end = "2020-08-15")
+    ),
+    mainPanel(
+      tabsetPanel(
+        tabPanel('Plot', plotly::plotlyOutput('plot_top_7countries')),
+        tabPanel('Table', DT::DTOutput('table_top_7countries'))
+      )
+    )
+  )
+)
+server <- function(input, output, session){
+  # Function to plot trends in a name
+  plot_trends <- function(){
+     top_7countries %>%  
+      filter(country == input$country, date >= "2020-02-15") %>% 
+      ggplot(aes(x = date, y = total_cases)) +
+      geom_line()
+  }
+  output$plot_top_7countries <- plotly::renderPlotly({
+    validate(
+    need(input$country != "", "Select a country and date range to get the app working")
+    )
+    plot_trends()
+  })
+  
+  output$table_top_7countries <- DT::renderDT({
+    top_7countries %>% 
+      filter(country == input$country)
+  })
+}
+shinyApp(ui = ui, server = server)
+
 ```
+
+```{r}
+# Group by country, summarize to calculate total cases, find the top 7
+owid_covid <- read_csv("./data/owid-covid-data.csv")
+
+owid_bycountry = owid_covid %>% 
+  group_by(location, date) %>%
+  summarize(total_cases = sum(total_cases)) 
+
+owid_bycountry
+
+target = c("Brazil", "India", "Mexico", "Peru", "Russia", "South Africa", "United States")
+top_7countries_OW = owid_bycountry %>% 
+  group_by(location) %>% 
+  filter(location %in% target) %>% 
+  filter(total_cases > 0)
+
+top_7countries_OW
+```
+
+
+
+```{r}
+# top_countries_by_total_cases_date = owid_bycountry %>% 
+#   group_by(location) %>%
+#   summarize(total_cases = sum(total_cases)) %>%
+#   top_n(7, total_cases)
+# 
+# top_countries_by_total_cases_date
+
+top_countries_by_total_cases <- owid_bycountry %>%
+  group_by(location) %>%
+  subset(location != "World") %>%
+  summarize(total_cases = sum(total_cases)) %>%
+  top_n(7, total_cases)
+
+top_countries_by_total_cases
+
+target = c("Brazil", "India", "Italy", "Spain", "Russia", "United Kingdom", "United States")
+top_7countries_OW = owid_bycountry %>% 
+  group_by(location) %>% 
+  filter(location %in% target) %>% 
+  filter(total_cases > 0)
+
+top_7countries_OW 
+
+
+
+library(lubridate)
+
+top_7countries_OW=top_7countries_OW %>% 
+  mutate(month = month(date), day = day(date), year = year(date))
+
+owid-mdy = owid_bycountry %>% 
+  mutate(month = month(date), day = day(date), year = year(date))
+
+
+
+
+```
+
+
+```{r}
+ui <- fluidPage(
+  # CODE BELOW: Add a titlePanel with an appropriate title
+  titlePanel("COVID-19"),
+  # REPLACE CODE BELOW: with theme = shinythemes::shinytheme("<your theme>")
+  theme = shinythemes::shinytheme("cerulean"),
+  # shinythemes::themeSelector(),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput('location', 'Select Country', top_7countries_OW$location),
+  #     sliderInput("month", "Select Month:",
+  #   min = 2, max = 8, value = 4, 
+  # )
+      selectInput('month','Select Month', top_7countries_OW$month, multiple = TRUE)
+    ),
+  
+    mainPanel(
+      tabsetPanel(
+        tabPanel('Plot', plotly::plotlyOutput('plot_top_7countries_OW')),
+        tabPanel('Table', DT::DTOutput('table_top_7countries_OW'))
+      )
+    )
+  )
+)
+server <- function(input, output, session){
+  # Function to plot trends in a name
+  plot_trends <- function(){
+     top_7countries_OW %>%  
+      filter(location == input$location) %>% 
+      filter(month == input$month) %>% 
+      ggplot(aes(x = date, y = total_cases)) +
+      geom_line()
+  }
+  output$plot_top_7countries_OW <- plotly::renderPlotly({
+    validate(
+    need(input$location != "", "Select a country and month to get the app working")
+    )
+    plot_trends()
+  })
+  
+  output$table_top_7countries_OW <- DT::renderDT({
+    top_7countries_OW %>% 
+      filter(location == input$location)%>% 
+      filter(month == input$month) %>% 
+      select(location, date, total_cases)
+  })
+}
+shinyApp(ui = ui, server = server)
+
+```
+
+
+```{r}
+ui <- fluidPage(
+  # set theme
+  theme = shinythemes::shinytheme("cerulean"),
+  # shinythemes::themeSelector(),
+  
+  ## attempt to create multi pages
+  tags$head(
+  tags$style(HTML("
+          .navbar .navbar-header {float: right}
+        ")) 
+  ),
+  
+  navbarPage("WORLD", icon=icon('globe'),
+    title="COVID-19 Worldwide by the Numbers",
+    id="nav",
+    position="fixed-top",
+    collapsible=TRUE,
+             br(),
+             br(),
+             br(),
+             fluidRow(h1("World COVID-19 numbers by Month")),
+          fluidRow(
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput('location', 'Select Country', top_7countries_OW$location),
+  #     sliderInput("month", "Select Month:",
+  #   min = 2, max = 8, value = 4, 
+  # )
+      selectInput('month','Select Month', top_7countries_OW$month, multiple = TRUE)
+    ),
+  
+    mainPanel(
+      tabsetPanel(
+        tabPanel('Plot', plotly::plotlyOutput('plot_top_7countries_OW')),
+        tabPanel('Table', DT::DTOutput('table_top_7countries_OW'))
+      )
+    )
+  )
+)
+), #end of first tabPanel
+navbarMenu("EXPLORE", icon=icon('compass'),
+                        br(),
+                        br(),
+                        br(),
+                        fluidRow(h1("Renewable Energy Insights by Region")),
+                        fluidRow( 
+    sidebarLayout(
+    sidebarPanel(
+      selectInput('location', 'Select Country', top_7countries_OW$location),
+      sliderInput("month", "Select Month:",
+    min = 2, max = 8, value = 4,
+  ),
+    #   selectInput('month','Select Month', top_7countries_OW$month, multiple = TRUE)
+    # ),
+  
+    mainPanel(
+      tabsetPanel(
+        tabPanel('Plot', plotly::plotlyOutput('plot_top_7countries_OW')),
+        tabPanel('Table', DT::DTOutput('table_top_7countries_OW'))
+      )
+    )
+  )
+)
+           
+)
+)
+)
+) # end of Nav bar
+) # end of UI
+server <- function(input, output, session){
+  # Function to plot trends in a name
+  plot_trends <- function(){
+     top_7countries_OW %>%  
+      filter(location == input$location) %>% 
+      filter(month == input$month) %>% 
+      ggplot(aes(x = date, y = total_cases)) +
+      geom_line()
+  }
+  output$plot_top_7countries_OW <- plotly::renderPlotly({
+    validate(
+    need(input$location != "", "Select a country to get the app working")
+    )
+    plot_trends()
+  })
+  
+  output$table_top_7countries_OW <- DT::renderDT({
+    top_7countries_OW %>% 
+      filter(location == input$location)%>% 
+      filter(month == input$month) %>% 
+      select(location, date, total_cases)
+  })
+}
+shinyApp(ui = ui, server = server)
+
+```
+
+
+
 
 
 

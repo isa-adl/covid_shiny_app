@@ -1,0 +1,691 @@
+
+```{r}
+library(shiny)
+library(shinythemes)
+library(plotly)
+library(googleVis)
+library(tidyverse)
+library(DT)
+
+owid_covid <- read_csv("./data/owid-covid-data.csv")
+
+head(owid_covid)
+```
+
+
+```{r}
+owid_bycountry = owid_covid %>% 
+  group_by(location, date) %>%
+  summarize(total_cases = sum(total_cases))
+
+head(owid_bycountry)
+```
+
+
+```{r}
+owid_bycountry3 = owid_covid %>% 
+  group_by(location) %>%
+  mutate(sum_total_cases_per_million  = sum(total_cases_per_million))
+head(owid_bycountry3)
+```
+
+Filtering by Top 7 countries
+```{r}
+target3 = c("Brazil", "India", "Italy", "Spain", "Russia", "United Kingdom", "United States")
+top_7countries_3 = owid_bycountry3 %>% 
+  group_by(location) %>% 
+  filter(location %in% target3) %>% 
+  filter(total_cases > 0)
+head(top_7countries_3)
+```
+
+
+Removing World from top 7 countries
+```{r}
+top_countries_by_total_cases <- owid_covid %>%
+  group_by(location) %>%
+  subset(location != "World") %>%
+  summarize(total_cases = sum(total_cases)) %>%
+  top_n(7, total_cases)
+
+top_countries_by_total_cases 
+```
+
+Top 7 Countries with MDY Column
+```{r}
+target2 = c("Brazil", "India", "Italy", "Spain", "Russia", "United Kingdom", "United States")
+top_7countries_OW = owid_bycountry %>% 
+  group_by(location) %>% 
+  filter(location %in% target2) %>% 
+  filter(total_cases > 0) %>% 
+  mutate(month = month(date), day = day(date), year = year(date))
+
+head(top_7countries_OW)
+```
+
+ALL countries with MDY
+```{r}
+library(lubridate)
+
+owid_mdy = owid_bycountry %>% 
+  mutate(month = month(date), day = day(date), year = year(date))
+
+head(owid_mdy)
+
+```
+
+
+```{r}
+ui = fluidPage(
+  theme = shinythemes::shinytheme("cerulean"),
+  tags$head(
+    tags$style(HTML("
+          .navbar .navbar-header {float: right}
+        ")) 
+  ),
+  navbarPage(
+    title="COVID-19 WORLDWIDE",
+    id="nav",
+    position="fixed-top",
+    collapsible=TRUE,
+    
+    tabPanel("WORLD MAP", icon=icon('globe'),
+             br(),
+             br(),
+             br(),
+             fluidRow(h1("COVID-19")),
+             fluidRow(
+               column(3, # this was set to 3
+                      br(),
+                      "Explore Worldwide COVID-19 data",
+                      br(),
+                      "The data is sourced from Our World in Data",
+                      br(),
+                      "Hover over maps and plots for details."
+                      )),
+             #   # column(2,
+               #        br(),
+               #        wellPanel(h4(strong(htmlOutput("worldmap_stats_1"))),
+               #                  h4(strong(htmlOutput("worldmap_stats_12")))
+               #                  )
+               #        ),
+               # column(2,
+               #        br(),
+               #        wellPanel(h4(strong(htmlOutput("worldmap_stats_2"))),
+               #                  h4(strong(htmlOutput("worldmap_stats_22")))
+               #                  )
+               #        ),
+               # column(2,
+               #        br(),
+               #        wellPanel(h4(strong(htmlOutput("worldmap_stats_3"))),
+               #                  h4(strong(htmlOutput("worldmap_stats_32")))
+               #                  )
+               #        )
+               # ),
+             
+
+             fluidRow(
+               column(3,
+                      br(),
+                      sliderInput("month", "Select Month:", min = 2, max = 8, value = 4)
+                      ),
+                    
+               column(8,
+                      plotlyOutput("map"))
+                  # tabItems(
+                  #   tabItem(tabName = "map",
+                  #     # fluidRow(infoBoxOutput("maxBox"),
+                  #     #          infoBoxOutput("minBox")),
+                  #     fluidRow(plotlyOutput("map"),
+                  #   tabItem(tabName = "data",
+                  #     fluidRow(box(DT::dataTableOutput("table2"), width = 12)))
+                  # ))
+               )
+             ), #end of HOME tabPanel
+
+
+
+##########################################################
+    
+    navbarMenu("EXPLORE", icon=icon('compass'),
+               
+               tabPanel("Graphs",
+                        br(),
+                        br(),
+                        br(),
+                        fluidRow(h1("COVID-19 in countries with most cases")),
+                        fluidRow(
+                        # column(2,
+                        #          br(),
+                          sidebarLayout(
+                          sidebarPanel(
+                          selectInput('location', 'Select Country', top_7countries_OW$location)
+  #     sliderInput("month", "Select Month:",
+  #   min = 2, max = 8, value = 4, 
+  # )
+                          # selectInput('month','Select Month', top_7countries_OW$month, multiple = TRUE)
+                          ),
+  
+                          mainPanel(
+                          tabsetPanel(
+                          tabPanel('Plot', plotly::plotlyOutput('plot_top_7countries_OW')),
+                          tabPanel('Table', DT::DTOutput('table_top_7countries_OW'))
+      ),
+       br(),
+       br(),
+       br(),
+       br(),
+      plotOutput("plt_top_7countries")
+    )
+  )
+                        #   column(2,
+                        #          br(),
+                        #          radioButtons(
+                        #            inputId="region_data",
+                        #            label="Select Data:",
+                        #            choices=list("Share of Output as Renewable (%)"="Share.Output",
+                        #                         "Share of TFEC as Renewable (%)"="Share.TFEC")
+                        #          ),
+                        #          br(),
+                        #          selectizeInput(
+                        #            inputId="region_region",
+                        #            label="Select Region:",
+                        #            choices=unique(sort(clean$Subregion))
+                        #          )
+                        #          ),
+                        #   column(10,
+                        #          br(),
+                        #          br(),
+                        #          plotlyOutput("region_share"))
+                        # )
+                        ) #end of fluidrow
+              
+               
+               )), #end of tabPanel and nav menu
+ 
+#################################
+
+    tabPanel("DATA", icon=icon("table"),
+             br(),
+             br(),
+             br(),
+             h3("All data courtesy of Our World in Data."),
+             "This data has been collected, aggregated, and documented by Diana Beltekian, Daniel Gavrilov, Charlie Giattino, Joe Hasell, Bobbie Macdonald, Edouard Mathieu, Esteban Ortiz-Ospina, Hannah Ritchie, Max Roser.",
+             br(),
+             br(),
+             fluidRow(
+               column(12,
+                      DT::dataTableOutput("table"))
+             ),
+             br()
+             ), #end of DATA tabPanel
+    
+    tabPanel("ABOUT ME", icon=icon('user'),
+             br(),
+             fluidRow(
+               column(3,
+                      br(),
+                      br(),
+                      br(),
+                      img(src="./images/isabel.JPG", width="100%")),
+               column(4,
+                      br(),
+                      br(),
+                      h3(strong("Isabel Alvarez de Lugo")),
+                      h5("isabel.adlugo@gmail.com"),
+                      tags$a(
+                        href="https://www.linkedin.com/in/isabel-adl/",
+                        img(
+                          src="./images/linkedin.png",
+                          title="linkedin",
+                          height="40px"
+                        )
+                      ),
+                      tags$a(
+                        href="https://github.com/isa-adl",
+                        img(
+                          src="./images/github.png",
+                          title="github",
+                          height="40px"
+                        )
+                      ),
+                      br(),
+                      br()
+                      )),
+             br(),
+             br()
+             ) #end of ABOUT ME tabPanel
+  )
+)
+
+server  <- function(input, output) {
+  
+  
+  ### DATA TABLE
+  output$table = DT::renderDataTable({
+    datatable(owid_covid, rownames = F) 
+  })
+  
+  
+  
+  ### DATA LINKS
+  # url_renewable = a("SE4ALL Data", href="https://datacatalog.worldbank.org/dataset/sustainable-energy-all")
+  # url_gdp = a("GDP Data", href="https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?end=2018&start=1990&view=chart")
+  # url_pop = a("Population Data", href="https://data.worldbank.org/indicator/sp.pop.totl?end=2015&start=1990")
+  # 
+  # output$renewable <- renderUI({
+  #   tagList("Renewable Data Link:", url_renewable)
+  # })
+  # 
+  # output$gdp <- renderUI({
+  #   tagList("GDP Data Link:", url_gdp)
+  # })
+  # 
+  # output$pop <- renderUI({
+  #   tagList("Population Data Link:", url_pop)
+  # })
+  # 
+
+  
+  ### GRAPHS 
+plot_trends <- function(){
+     top_7countries_OW %>%  
+      filter(location == input$location) %>% 
+      # filter(month == input$month) %>% 
+      ggplot(aes(x = date, y = total_cases)) +
+      geom_line()
+  }
+  output$plot_top_7countries_OW <- plotly::renderPlotly({
+    validate(
+    need(input$location != "", "Select a country and month to get the app working")
+    )
+    plot_trends()
+  })
+  
+  output$table_top_7countries_OW <- DT::renderDT({
+    top_7countries_OW %>% 
+      filter(location == input$location)%>% 
+      # filter(month == input$month) %>% 
+      select(location, date, total_cases)
+  })
+  
+  output$plt_top_7countries = renderPlot({ 
+    ggplot(top_7countries_3, aes(date, total_cases))  +
+    geom_line(aes(group = location, color = location))+
+    ylab("Cumulative confirmed cases")+
+    ggtitle("Total Cases for Countries with the Most Cases")
+  })
+  
+
+#   #graph of all top countries - total cases per million 
+# plt_top_7countries_3 = ggplot(top_7countries_3, aes(date, total_cases_per_million))  +
+#     geom_line(aes(group = location, color = location))+
+#     ylab("Cumulative confirmed cases")
+
+
+
+
+  
+  ### World Map
+  
+  output$map = renderPlotly({
+   
+    plot_geo(owid_mdy) %>% 
+      add_trace(z = owid_mdy[, input$month], color = owid_mdy[, "total_cases"], 
+                colors = 'Greens',
+                text = owid_mdy$location, 
+                locations = owid_mdy$location, 
+                marker = list(line = list(color = toRGB("grey"), width = 0.5))) %>% 
+      colorbar(title = '', ticksuffix = '') %>% 
+      layout(geo = list(
+        showframe = FALSE,
+        showcoastlines = FALSE,
+        projection = list(type = 'Mercator')
+      ))
+    
+  })
+# 
+#       # show map using googleVis
+#     output$map <- renderGvis({
+#         gvisGeoChart(owid_mdy, "location.name", input$month,
+#                      options=list(
+#                                   width="auto", height="auto"))
+#     })
+#     
+#         # show histogram using googleVis
+#     output$hist <- renderGvis({
+#         gvisHistogram(owid_mdy[,input$month, drop=FALSE])
+#     })
+#     
+    # show data using DataTable
+    # output$table2 <- DT::renderDataTable({
+    #     datatable(owid_mdy, rownames=FALSE) %>% 
+    #         formatStyle(input$month, background="skyblue", fontWeight='bold')
+    # })
+    # 
+
+
+  # output$worldmap = renderPlotly({
+  # 
+  #   # owid_mdy = owid_year %>% filter(., Year==input$worldmap_year)
+  # 
+  #   plot_geo(owid_mdy) %>%
+  #     add_trace(z = owid_mdy[, input$total_cases], color = owid_mdy[, input$total_cases],
+  #               colors = 'Greens',
+  #               text = owid_mdy$location,
+  #               locations = owid_mdy$location,
+  #               marker = list(line = list(color = toRGB("grey"), width = 0.5))) %>%
+  #     colorbar(title = '', ticksuffix = '') %>%
+  #     layout(geo = list(
+  #       showframe = FALSE,
+  #       showcoastlines = FALSE,
+  #       projection = list(type = 'Mercator')
+  #     ))
+  # 
+  # })
+  
+  
+  
+  # ### WORLD MAP STATS BOX
+  # 
+  # 
+  # output$worldmap_stats_data = renderText(input$worldmap_data)
+  # 
+  # output$worldmap_stats_1 = renderText({
+  #   stats = clean %>% filter(., Year==input$worldmap_year) %>% 
+  #     arrange(desc(eval(as.symbol(input$worldmap_data)))) %>% 
+  #     select(., Country)
+  #   
+  #   paste("1. ", as.character(stats[1,1]))
+  #   
+  # })
+  # 
+  # output$worldmap_stats_12 = renderText({
+  #   stats = clean %>% filter(., Year==input$worldmap_year) %>% 
+  #     arrange(desc(eval(as.symbol(input$worldmap_data))))
+  #   
+  #   paste("Value: ", as.character(round(stats[1,input$worldmap_data], digits=2)))
+  #   
+  # })
+  # 
+  # output$worldmap_stats_2 = renderText({
+  #   stats = clean %>% filter(., Year==input$worldmap_year) %>% 
+  #     arrange(desc(eval(as.symbol(input$worldmap_data)))) %>% 
+  #     select(., Country)
+  #   
+  #   paste("2. ", as.character(stats[2,1]))
+  #   
+  # })
+  # 
+  # output$worldmap_stats_22 = renderText({
+  #   stats = clean %>% filter(., Year==input$worldmap_year) %>% 
+  #     arrange(desc(eval(as.symbol(input$worldmap_data))))
+  #   
+  #   paste("Value: ", as.character(round(stats[2,input$worldmap_data], digits=2)))
+  #   
+  # })
+  # 
+  # output$worldmap_stats_3 = renderText({
+  #   stats = clean %>% filter(., Year==input$worldmap_year) %>% 
+  #     arrange(desc(eval(as.symbol(input$worldmap_data)))) %>% 
+  #     select(., Country)
+  #   
+  #   paste("3. ", as.character(stats[3,1]))
+  #   
+  # })
+  # 
+  # output$worldmap_stats_32 = renderText({
+  #   stats = clean %>% filter(., Year==input$worldmap_year) %>% 
+  #     arrange(desc(eval(as.symbol(input$worldmap_data))))
+  #   
+  #   paste("Value: ", as.character(round(stats[3,input$worldmap_data], digits=2)))
+  #   
+  # })
+
+  
+  
+  
+}
+
+shinyApp(ui = ui, server = server)
+
+
+```
+
+
+```{r}
+ui = fluidPage(
+  theme = shinythemes::shinytheme("cerulean"),
+  tags$head(
+    tags$style(HTML("
+          .navbar .navbar-header {float: right}
+        ")) 
+  ),
+  navbarPage(
+    title="COVID-19 WORLDWIDE",
+    id="nav",
+    position="fixed-top",
+    collapsible=TRUE,
+    
+    tabPanel("WORLD MAP", icon=icon('globe'),
+             br(),
+             br(),
+             br(),
+             fluidRow(h1("COVID-19")),
+             fluidRow(
+               column(3, # this was set to 3
+                      br(),
+                      "Explore Worldwide COVID-19 data",
+                      br(),
+                      "The data is sourced from Our World in Data",
+                      br(),
+                      "Hover over maps and plots for details.",
+                      br(),
+                      sliderInput("month", "Select Month:", min = 2, max = 8, value = 4)
+                      ),
+               
+               column(8,
+                      plotlyOutput("map"))
+               )
+             ), #end of HOME tabPanel
+
+  )
+)
+
+
+#################################################################
+server  <- function(input, output) {
+  
+  ### World Map
+  
+  
+  output$map = renderPlotly({
+   
+    plot_geo(owid_mdy) %>% 
+      add_trace(z = owid_mdy[, input$month], color = owid_mdy[, "total_cases"], 
+                colors = 'Greens',
+                locations = owid_mdy$location, 
+                marker = list(line = list(color = toRGB("grey"), width = 0.5))) %>% 
+      colorbar(title = '', ticksuffix = '') %>% 
+      layout(geo = list(
+        showframe = FALSE,
+        showcoastlines = FALSE,
+        projection = list(type = 'Mercator')
+      ))
+    
+  })
+# 
+#       # show map using googleVis
+#     output$map <- renderGvis({
+#         gvisGeoChart(owid_mdy, "location.name", input$month,
+#                      options=list(
+#                                   width="auto", height="auto"))
+#     })
+#     
+#         # show histogram using googleVis
+#     output$hist <- renderGvis({
+#         gvisHistogram(owid_mdy[,input$month, drop=FALSE])
+#     })
+#     
+    # show data using DataTable
+    # output$table2 <- DT::renderDataTable({
+    #     datatable(owid_mdy, rownames=FALSE) %>% 
+    #         formatStyle(input$month, background="skyblue", fontWeight='bold')
+    # })
+    # 
+
+
+  # output$worldmap = renderPlotly({
+  # 
+  #   # owid_mdy = owid_year %>% filter(., Year==input$worldmap_year)
+  # 
+  #   plot_geo(owid_mdy) %>%
+  #     add_trace(z = owid_mdy[, input$total_cases], color = owid_mdy[, input$total_cases],
+  #               colors = 'Greens',
+  #               text = owid_mdy$location,
+  #               locations = owid_mdy$location,
+  #               marker = list(line = list(color = toRGB("grey"), width = 0.5))) %>%
+  #     colorbar(title = '', ticksuffix = '') %>%
+  #     layout(geo = list(
+  #       showframe = FALSE,
+  #       showcoastlines = FALSE,
+  #       projection = list(type = 'Mercator')
+  #     ))
+  # 
+  # })
+  
+
+  
+  
+}
+
+shinyApp(ui = ui, server = server)
+
+
+```
+
+
+```{r}
+
+coronavirus <- read_csv("./data/coronavirus.csv")
+
+
+coronavirus %>% 
+  group_by(type, date) %>%
+  summarise(total_cases = sum(cases)) %>%
+  pivot_wider(names_from = type, values_from = total_cases) %>%
+  arrange(date) %>%
+  mutate(active = confirmed - death - recovered) %>%
+  mutate(active_total = cumsum(active),
+                recovered_total = cumsum(recovered),
+                death_total = cumsum(death)) %>%
+  plot_ly(x = ~ date,
+                  y = ~ active_total,
+                  name = 'Active', 
+                  fillcolor = '#1f77b4',
+                  type = 'scatter',
+                  mode = 'none', 
+                  stackgroup = 'one') %>%
+  add_trace(y = ~ death_total, 
+             name = "Death",
+             fillcolor = '#E41317') %>%
+  add_trace(y = ~recovered_total, 
+            name = 'Recovered', 
+            fillcolor = 'forestgreen') %>%
+  layout(title = "Distribution of Covid19 Cases Worldwide",
+         legend = list(x = 0.1, y = 0.9),
+         yaxis = list(title = "Number of Cases"))
+
+
+conf_df <- coronavirus %>% 
+  filter(type == "confirmed") %>%
+  group_by(country) %>%
+  summarise(total_cases = sum(cases)) %>%
+  arrange(-total_cases) %>%
+  mutate(parents = "Confirmed") %>%
+  ungroup() 
+  
+  plot_ly(data = conf_df,
+          type= "treemap",
+          values = ~total_cases,
+          labels= ~ country,
+          parents=  ~parents,
+          domain = list(column=0),
+          name = "Confirmed",
+          textinfo="label+value+percent parent")
+         
+```
+
+
+
+```{r}
+head(owid_covid)
+```
+```{r}
+location_age = owid_covid %>%
+  select(location, median_age, life_expectancy)
+
+ggplot(top_7countries_3, aes(x=location, y = total_cases_per_million)) +
+  geom_col()
+
+```
+
+```{r}
+head(coronavirus)
+```
+
+
+```{r}
+owid_covid %>% 
+  group_by(location)
+  
+```
+
+
+
+
+```{r}
+continent_by_total_cases <- owid_covid %>%
+  group_by(continent) %>%
+  subset(location != "World") %>%
+  summarise(total_cases = sum(total_cases))
+
+continent_by_total_cases
+
+```
+
+```{r}
+if (require(maps)) {
+
+  crimes <- data.frame(state = tolower(rownames(USArrests)), USArrests)
+
+  # Equivalent to crimes %>% tidyr::pivot_longer(Murder:Rape)
+  vars <- lapply(names(crimes)[-1], function(j) {
+    data.frame(state = crimes$state, variable = j, value = crimes[[j]])
+  })
+  crimes_long <- do.call("rbind", vars)
+
+  states_map <- map_data("state")
+  ggplot(crimes, aes(map_id = state)) +
+    geom_map(aes(fill = Murder), map = states_map) +
+    expand_limits(x = states_map$long, y = states_map$lat)
+
+  last_plot() + coord_map()
+  ggplot(crimes_long, aes(map_id = state)) +
+    geom_map(aes(fill = value), map = states_map) +
+    expand_limits(x = states_map$long, y = states_map$lat) +
+    facet_wrap( ~ variable)
+}
+```
+
+```{r}
+plt_top_7countries = ggplot(top_7countries_3, aes(date, total_cases))  +
+    geom_line(aes(group = location, color = location))+
+    ylab("Cumulative confirmed cases")
+
+plt_top_7countries
+```
+
+
+
+
