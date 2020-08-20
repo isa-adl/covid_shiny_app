@@ -67,7 +67,7 @@ ALL countries with MDY
 ```{r}
 library(lubridate)
 
-owid_mdy = owid_bycountry %>% 
+owid_mdy = owid_bycountry3 %>% 
   mutate(month = month(date), day = day(date), year = year(date))
 
 head(owid_mdy)
@@ -500,11 +500,14 @@ server  <- function(input, output) {
   
   
   output$map = renderPlotly({
+    
+    owid_mselected = owid_mdy %>% filter(., month = input$month)
    
-    plot_geo(owid_mdy) %>% 
-      add_trace(z = owid_mdy[, input$month], color = owid_mdy[, "total_cases"], 
+    plot_geo(owid_mselected) %>% 
+      add_trace(z = owid_mselected[,total_cases], color = owid_mselected[, total_cases], 
                 colors = 'Greens',
-                locations = owid_mdy$location, 
+                text = owid_mselected$location,
+                locations = owid_mselected$iso_code, 
                 marker = list(line = list(color = toRGB("grey"), width = 0.5))) %>% 
       colorbar(title = '', ticksuffix = '') %>% 
       layout(geo = list(
@@ -648,7 +651,7 @@ owid_covid %>%
 continent_by_total_cases <- owid_covid %>%
   group_by(continent) %>%
   subset(location != "World") %>%
-  summarise(total_cases = sum(total_cases))
+  summarise(total_cases = sum(total_cases, na.rm= TRUE))
 
 continent_by_total_cases
 

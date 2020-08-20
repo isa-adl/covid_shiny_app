@@ -5,6 +5,7 @@ library(googleVis)
 library(tidyverse)
 library(DT)
 library(lubridate)
+library(countrycode)
 
 owid_covid <- read_csv("./data/owid-covid-data.csv")
 
@@ -41,8 +42,9 @@ top_7countries_3 = owid_bycountry3 %>%
   filter(total_cases > 0)
 
 #using lubridate - ALL countries with MDY
-owid_mdy = owid_bycountry %>% 
-  mutate(month = month(date), day = day(date), year = year(date))
+owid_mdy = owid_bycountry3 %>% 
+  mutate(month = month(date), day = day(date), year = year(date)) %>% 
+  filter(!is.na(total_cases))
 
 
 

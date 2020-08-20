@@ -47,23 +47,54 @@ server  <- function(input, output) {
     ### World Map
     
     output$map = renderPlotly({
-        
-        plot_geo(owid_mdy) %>% 
-            add_trace(z = owid_mdy[, input$month], color = owid_mdy[, "total_cases"], 
-                      colors = 'Greens',
-                      text = owid_mdy$location, 
-                      locations = owid_mdy$location, 
-                      marker = list(line = list(color = toRGB("grey"), width = 0.5))) %>% 
-            colorbar(title = '', ticksuffix = '') %>% 
-            layout(geo = list(
-                showframe = FALSE,
-                showcoastlines = FALSE,
-                projection = list(type = 'Mercator')
-            ))
-        
-    })
+#         
+#         owid_mselected = owid_mdy %>% filter(., month == input$month)
+#         
+#         plot_geo(owid_mselected) %>% 
+#             add_trace(z = owid_mselected[, owid_mselected$total_cases], color = owid_mselected[, owid_mselected$total_cases], 
+#                       colors = 'Reds',
+#                       text = owid_mselected$location,
+#                       locations = owid_mselected$iso_code, 
+#                       marker = list(line = list(color = toRGB("grey"), width = 0.5))) %>% 
+#             colorbar(title = '', ticksuffix = '') %>% 
+#             layout(geo = list(
+#                 showframe = FALSE,
+#                 showcoastlines = FALSE,
+#                 projection = list(type = 'Mercator')
+#             ))
+#         
+#     })
+#     
+# }
+plot_geo(
+    owid_mdy %>% 
+        ungroup() %>% 
+        filter(month==input$month) %>%
+        mutate(
+            location=countrycode(location, origin = 'country.name', destination = 'genc3c')
+        ) %>%
+        group_by(location) %>%
+        summarise(value=max(total_cases_per_million))
+) %>%
+    add_trace(
+        z = ~value, locations = ~location, colors="Greens",
+        marker = list(line = list(color = toRGB("grey"), width = 0.5))
+    ) %>% 
+    colorbar(
+        title = '', ticksuffix = '') %>%
+    layout(
+        geo = list(
+            showframe = FALSE,
+            showcoastlines = FALSE,
+            projection = list(type = 'Mercator')),
+        title = "Total Cases per Million Worldwide"
+    
+        )
 
+})
+    
 }
+
 
 
 # shinyServer(function(input, output){
